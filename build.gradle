@@ -1,12 +1,12 @@
 plugins {
     id 'war'
     id 'org.springframework.boot' version '1.5.10.RELEASE'
-    id 'com.bmuschko.docker-remote-api' version '3.2.3'
+    id 'com.bmuschko.docker-remote-api' version '6.4.0'
 }
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
-version = '1.0.0'
+version = '1.0.1'
 
 repositories {
     jcenter()
@@ -33,7 +33,7 @@ task createDockerfile(type: Dockerfile) {
     group = 'Docker'
     destFile = project.file('build/docker/Dockerfile')
     from 'openjdk:8-jre-alpine'
-    maintainer 'Tim Lukashevich "efreet@tut.by"'
+    label(['maintainer': 'Tim Lukashevich "efreet@tut.by"'])
     copyFile war.archiveName, '/app/account-web-service.war'
     entryPoint 'java'
     defaultCommand '-jar', '/app/account-web-service.war'
@@ -45,7 +45,7 @@ task createDockerfile(type: Dockerfile) {
 task syncWebAppArchive(type: Sync) {
     dependsOn assemble
     from war.archivePath
-    into createDockerfile.destFile.parentFile
+    into project.file('build/docker')
 }
 
 createDockerfile.dependsOn syncWebAppArchive
@@ -53,14 +53,15 @@ createDockerfile.dependsOn syncWebAppArchive
 task buildImage(type: DockerBuildImage) {
     group = 'Docker'
     dependsOn createDockerfile
-    inputDir = createDockerfile.destFile.parentFile
-    tag = "timo1979/account-web-service:$war.version"
+    inputDir = project.file('build/docker')
+    images.add("timo1979/account-web-service:$war.version")
 }
 
 task pushImage(type: DockerPushImage) {
     group = 'Docker'
     dependsOn buildImage
-    conventionMapping.imageName = { buildImage.getTag() }
+    images.add("timo1979/account-web-service:$war.version")
+//    conventionMapping.imageName = { buildImage.getTag() }
 }
 
 String getConfigurationProperty(String envVar, String sysProp) {
